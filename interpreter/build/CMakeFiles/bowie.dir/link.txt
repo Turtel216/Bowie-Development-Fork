@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/bowie.dir/src/main.c.o -o bowie
