@@ -1,1 +1,0 @@
-/usr/bin/cc CMakeFiles/bowie.dir/src/main.c.o CMakeFiles/bowie.dir/src/util/error.c.o CMakeFiles/bowie.dir/src/interpreter.c.o -o bowie
