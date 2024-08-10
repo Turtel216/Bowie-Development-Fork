@@ -13,8 +13,8 @@
 static bool is_keyword(char *str)
 {
 	// List of preserved words
-	const char *keywords[] = { "Ziggy\n", "Major Tom\n", "Space Oddity\n",
-				   "Starman\n", "Life on Mars\n?" };
+	const char *keywords[] = { "Ziggy", "Major Tom", "Space Oddity",
+				   "Starman", "Life on Mars?" };
 
 	for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); ++i) {
 		if (strcmp(str, keywords[i]) == 0)
@@ -39,15 +39,17 @@ static bool is_integer(char *str)
 }
 
 // trims a substring from given 'start' to 'end'
-static char *get_substring(char *str, int start, int end) // TODO
+static char *get_substring(char *str) // TODO
 {
 	int len = strlen(str);
-	int sub_length = end - start + 1;
 
-	char *subStr = (char *)malloc((sub_length + 1) * sizeof(char));
-	strncpy(subStr, str + start, sub_length);
-	subStr[sub_length] = '\0';
-	return subStr;
+	// Remove new line
+	char *sub_str = (char *)malloc((len - 1) * sizeof(char));
+	if (sub_str == NULL)
+		error_and_exit("Memory allocation error at line %\n", __LINE__);
+
+	strncpy(sub_str, str, len - 1);
+	return sub_str;
 }
 
 // parse the input
@@ -55,8 +57,8 @@ void lexer_lex(char *input)
 {
 	int len = strlen(input);
 
-	//char *sub_str = get_substring(input, 0, len - 1); TODO
-	char *sub_str = input;
+	// Trim input string
+	char *sub_str = get_substring(input);
 
 	if (is_keyword(sub_str)) {
 		printf("Token: Keyword, Value: %s\n", sub_str);
