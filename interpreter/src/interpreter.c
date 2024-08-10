@@ -3,6 +3,7 @@
 #include "Lexer/lexer.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 // Start up interpreter on given file
 void start_interpreter(const char *filename)
@@ -21,7 +22,13 @@ void start_interpreter(const char *filename)
 		while (linelen > 0 &&
 		       (line[linelen - 1] == '\n' || line[linelen - 1] == '\r'))
 			linelen--;
-		lexer_lex(line);
+
+		// Split when a space is accuring
+		line = strtok(line, " ");
+		while (line != NULL) {
+			lexer_lex(line); // Lex token
+			line = strtok(NULL, " "); // reset line for next token
+		}
 	}
 
 	free(line);
