@@ -6,14 +6,21 @@
 
 #include "../util/error.h"
 #include "lexer.h"
+#include "../interpreter.h"
+
+static void add_token(int key, char *value)
+{
+	keyword_map map = { .key = key, .value = value, .next = NULL };
+	//TODO
+}
 
 // Check if input string is a keyword
 static bool is_keyword(char *str)
 {
 	// List of preserved words
-	static const char *keywords[] = {
-		"Ziggy", "Major-Tom", "Space-Oddity", "Starman", "Life-on-Mars?"
-	}; //TODO remove the '-'
+	static const char *keywords[] = { "Ziggy", "Major",  "Tom",
+					  "Space", "Oddity", "Starman",
+					  "Life",  "on",     "Mars?" };
 
 	for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); ++i) {
 		if (strcmp(str, keywords[i]) == 0)
@@ -34,11 +41,16 @@ static bool is_integer(char *str)
 	while (isdigit(str[i]))
 		++i;
 
-	return str[i] == '\0';
+	if (str[i] == '\0') {
+		add_token(NUMBER, str);
+		return true;
+	}
+
+	return false;
 }
 
 // trims a substring and removes spaces
-static char *get_substring(char *str) // TODO Tokens separated by spaces
+static char *get_substring(char *str)
 {
 	int len = strlen(str);
 
@@ -56,7 +68,7 @@ static char *get_substring(char *str) // TODO Tokens separated by spaces
 }
 
 // parse the input
-void lexer_lex(char *input) // TODO add support for
+void lexer_lex(char *input)
 {
 	int len = strlen(input);
 
