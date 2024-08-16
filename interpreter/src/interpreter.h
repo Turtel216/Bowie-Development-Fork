@@ -1,12 +1,12 @@
 #pragma once
 
 // Keyword enums
-enum KEY { NUMBER, INITIALIZE, INCREMENT, DECREMENT, PRINT, INPUT };
+enum KEY { NUMBER, ZIGGY, MAJOR, TOM, SPACE, ODDITY, STARMAN, LIFE, ON, MARS };
 
 // Map holding token enum pairs
 typedef struct Map {
-	int key;
 	char *value;
+	int key;
 	struct Map *next;
 } keyword_map;
 

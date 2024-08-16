@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -8,22 +9,34 @@
 #include "lexer.h"
 #include "../interpreter.h"
 
-static void add_token(int key, char *value)
+// Head of linekd list
+keyword_map *head = NULL;
+
+static void add_token(keyword_map node)
 {
-	keyword_map map = { .key = key, .value = value, .next = NULL };
-	//TODO
+	keyword_map *new_node = (keyword_map *)malloc(sizeof(keyword_map));
+	assert(new_node != NULL && "Error allocating memory in add_token");
+	new_node->next = head;
+	new_node->value = node.value;
+	new_node->key = node.key;
+
+	head = new_node;
 }
 
 // Check if input string is a keyword
 static bool is_keyword(char *str)
 {
 	// List of preserved words
-	static const char *keywords[] = { "Ziggy", "Major",  "Tom",
-					  "Space", "Oddity", "Starman",
-					  "Life",  "on",     "Mars?" };
+	static const keyword_map keywords[] = {
+		{ "Ziggy", ZIGGY },   { "Major", MAJOR },
+		{ "Tom", TOM },	      { "Space", SPACE },
+		{ "Oddity", ODDITY }, { "Starman", STARMAN },
+		{ "Life", LIFE },     { "on", ON },
+		{ "Mars?", MARS }
+	};
 
 	for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); ++i) {
-		if (strcmp(str, keywords[i]) == 0)
+		if (strcmp(str, keywords[i].value) == 0)
 			return true;
 	}
 
@@ -42,7 +55,8 @@ static bool is_integer(char *str)
 		++i;
 
 	if (str[i] == '\0') {
-		add_token(NUMBER, str);
+		keyword_map node = { str, NUMBER };
+		add_token(node);
 		return true;
 	}
 
