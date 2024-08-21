@@ -1,6 +1,6 @@
 #include "interpreter.h"
 #include <stdlib.h>
-#include "util/error.h"
+#include "error.h"
 
 int main(int argc, char *argv[])
 {

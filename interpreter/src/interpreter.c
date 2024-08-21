@@ -1,6 +1,6 @@
 #include "interpreter.h"
-#include "util/error.h"
-#include "Lexer/lexer.h"
+#include "error.h"
+#include "lexer.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

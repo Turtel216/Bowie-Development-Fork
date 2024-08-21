@@ -5,9 +5,9 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "../util/error.h"
+#include "error.h"
 #include "lexer.h"
-#include "../interpreter.h"
+#include "interpreter.h"
 
 // Head of linekd list
 keyword_map *head = NULL;
