@@ -24,7 +24,5 @@
 
 // Realocate given type
 void *reallocate(void *pointer, size_t oldSize, size_t newSize);
-// Free memory for object list
-void free_objects(void);
 
 #endif
