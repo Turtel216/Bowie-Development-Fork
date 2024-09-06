@@ -1,101 +1,247 @@
-#include <assert.h>
-#include <ctype.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
-#include <stdlib.h>
-
-#include "error.h"
 #include "lexer.h"
-#include "interpreter.h"
+#include <stdbool.h>
+#include <string.h>
 
-// Head of linekd list
-keyword_map *head = NULL;
+// Lexer's meta data
+typedef struct {
+	const char *start; // Start position
+	const char *current; // Current position on string
+	int line; // line number in source file
+} Scanner;
 
-static void add_token(keyword_map node)
+// Global scanner struct
+Scanner scanner;
+
+// Start up scanner
+void init_scanner(const char *source)
 {
-	keyword_map *new_node = (keyword_map *)malloc(sizeof(keyword_map));
-	assert(new_node != NULL && "Error allocating memory in add_token");
-	new_node->next = head;
-	new_node->value = node.value;
-	new_node->key = node.key;
-
-	head = new_node;
+	// initialize scanner meta data
+	scanner.start = source;
+	scanner.current = source;
+	scanner.line = 1;
 }
 
-// Check if input string is a keyword
-static bool is_keyword(char *str)
+// Check if at the end of source string
+static inline bool is_at_end(void)
 {
-	// List of preserved words
-	static const keyword_map keywords[] = {
-		{ "Ziggy", ZIGGY },   { "Major", MAJOR },
-		{ "Tom", TOM },	      { "Space", SPACE },
-		{ "Oddity", ODDITY }, { "Starman", STARMAN },
-		{ "Life", LIFE },     { "on", ON },
-		{ "Mars?", MARS }
-	};
-
-	for (int i = 0; i < sizeof(keywords) / sizeof(keywords[0]); ++i) {
-		if (strcmp(str, keywords[i].value) == 0)
-			return true;
-	}
-
-	return false;
+	return *scanner.current == '\0';
 }
 
-// check for an integer value
-static bool is_integer(char *str)
+// Initialize and return a new Token struct
+static Token make_token(TokenType type)
 {
-	if (str == NULL || *str == '\0') {
+	Token token;
+	token.type = type;
+	token.start = scanner.start;
+	token.length = (int)(scanner.current - scanner.start);
+	token.line = scanner.line;
+	return token;
+}
+
+// Initialize and return a new Token struct of type error
+static Token error_token(const char *message)
+{
+	Token token;
+	token.type = TOKEN_ERROR;
+	token.start = message;
+	token.length = (int)strlen(message);
+	token.line = scanner.line;
+	return token;
+}
+
+// Get next character
+static char advance(void)
+{
+	scanner.current++;
+	return scanner.current[-1];
+}
+
+// Check if current char is the expected char
+static bool match(char expected)
+{
+	if (is_at_end())
 		return false;
-	}
 
-	int i = 0;
-	while (isdigit(str[i]))
-		++i;
+	if (*scanner.current != expected)
+		return false;
 
-	if (str[i] == '\0') {
-		keyword_map node = { str, NUMBER };
-		add_token(node);
-		return true;
-	}
-
-	return false;
+	scanner.current++;
+	return true;
 }
 
-// trims a substring and removes spaces
-static char *get_substring(char *str)
+// Get current char
+static char peek(void)
 {
-	int len = strlen(str);
-
-	// Check if a new line character is added
-	if (str[len - 1] != '\n')
-		return str;
-
-	// Remove new line if new line is present
-	char *sub_str = (char *)malloc((len - 1) * sizeof(char));
-	if (sub_str == NULL)
-		error_and_exit("Memory allocation error at line %\n", __LINE__);
-
-	strncpy(sub_str, str, len - 1);
-	return sub_str;
+	return *scanner.current;
 }
 
-// parse the input
-void lexer_lex(char *input)
+// Get next char
+static char peek_next(void)
 {
-	int len = strlen(input);
+	// if at end return string termination character
+	if (is_at_end())
+		return '\0';
 
-	// Trim input string
-	char *sub_str = get_substring(input);
+	return scanner.current[1];
+}
 
-	if (is_keyword(sub_str)) {
-		printf("Token: Keyword, Value: %s\n", sub_str);
-		return;
-	} else if (is_integer(sub_str)) {
-		printf("Token: Integer, Value: %s\n", sub_str);
-		return;
+// Skip all kinds of whitespace of source string
+static void skip_whitespace(void)
+{
+	for (;;) {
+		char c = peek();
+		switch (c) {
+		case ' ':
+		case '\r':
+		case '\t':
+			advance();
+			break;
+		case '\n':
+			scanner.line++;
+			advance();
+			break;
+		case '/': // Comments
+			if (peek_next() == '/') {
+				// A comment goes until the end of the line.
+				while (peek() != '\n' && !is_at_end())
+					advance();
+			} else {
+				return;
+			}
+			break;
+		default:
+			return;
+		}
+	}
+}
+
+// Get string type
+static Token string(void)
+{
+	while (peek() != '"' && !is_at_end()) {
+		if (peek() == '\n')
+			scanner.line++;
+		advance();
 	}
 
-	error_and_exit("Lexer error!\n");
+	if (is_at_end())
+		return error_token("Unterminated string.");
+
+	// The closing quote.
+	advance();
+	return make_token(TOKEN_STRING);
+}
+
+// Check if character is a digit
+static bool is_digit(char c)
+{
+	return c >= '0' && c <= '9';
+}
+
+// Get number type
+static Token number(void)
+{
+	while (is_digit(peek()))
+		advance();
+
+	// Look for a fractional part.
+	if (peek() == '.' && is_digit(peek_next())) {
+		// Consume the ".".
+		advance();
+
+		while (is_digit(peek()))
+			advance();
+	}
+
+	return make_token(TOKEN_NUMBER);
+}
+
+// Check if character is alphanumeric
+static inline bool is_alpha(char c)
+{
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
+// Check if current string is the rest of a keyword
+static TokenType check_keyword(int start, int length, const char *rest,
+			       TokenType type)
+{
+	if (scanner.current - scanner.start == start + length &&
+	    memcmp(scanner.start + start, rest, length) == 0) {
+		return type;
+	}
+
+	return TOKEN_IDENTIFIER;
+}
+
+//TODO add all identifiers and fix start/length
+static TokenType identifier_type(void)
+{
+	switch (scanner.start[0]) {
+	case 'S':
+		if (scanner.current - scanner.start > 1) {
+			switch (scanner.start[1]) {
+			case 'p':
+				return check_keyword(2, 10, "paceOddity",
+						     TOKEN_DECREMENT);
+			case 't':
+				return check_keyword(2, 6, "tarman",
+						     TOKEN_PRINT);
+			}
+		}
+		break;
+	case 'Z':
+		return check_keyword(1, 4, "iggy", TOKEN_VAR);
+	case 'M':
+		check_keyword(1, 7, "ajorTom", TOKEN_INCREMENT);
+	}
+	return TOKEN_IDENTIFIER;
+}
+
+static Token identifier(void)
+{
+	while (is_alpha(peek()) || is_digit(peek()))
+		advance();
+	return make_token(identifier_type());
+}
+
+// Run scanner
+Token scan_token(void)
+{
+	skip_whitespace();
+	scanner.start = scanner.current;
+
+	if (is_at_end())
+		return make_token(TOKEN_EOF);
+
+	char c = advance();
+
+	if (is_alpha(c))
+		return identifier();
+	if (is_digit(c))
+		return number();
+
+	switch (c) {
+	case '-':
+		return make_token(TOKEN_MINUS);
+	case '+':
+		return make_token(TOKEN_PLUS);
+	case '/':
+		return make_token(TOKEN_SLASH);
+	case '*':
+		return make_token(TOKEN_STAR);
+	case '!':
+		return make_token(match('=') ? TOKEN_BANG_EQUAL : TOKEN_BANG);
+	case '=':
+		return make_token(match('=') ? TOKEN_EQUAL_EQUAL : TOKEN_EQUAL);
+	case '<':
+		return make_token(match('=') ? TOKEN_LESS_EQUAL : TOKEN_LESS);
+	case '>':
+		return make_token(match('=') ? TOKEN_GREATER_EQUAL :
+					       TOKEN_GREATER);
+	case '"':
+		return string();
+	}
+
+	return error_token("Unexpected character.");
 }
