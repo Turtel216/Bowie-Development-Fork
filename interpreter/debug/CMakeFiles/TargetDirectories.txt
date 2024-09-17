@@ -1,0 +1,3 @@
+/home/dimitrios/Documents/Dev/bowie/interpreter/debug/CMakeFiles/bowie.dir
+/home/dimitrios/Documents/Dev/bowie/interpreter/debug/CMakeFiles/edit_cache.dir
+/home/dimitrios/Documents/Dev/bowie/interpreter/debug/CMakeFiles/rebuild_cache.dir

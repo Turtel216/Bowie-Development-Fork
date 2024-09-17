@@ -3,13 +3,16 @@
 
 #include <stdint.h>
 #include "value.h"
+#include "chunk.h"
 
 // Initiale Stack size
 #define STACK_SIZE 256
 
 typedef struct {
-	int stack_size; // Current size of stack
-	uint8_t id; // Id of vm
+	Chunk *chunk; // Byte code chunk
+	uint8_t *ip; // Unique vm id
+	Value stack[STACK_SIZE]; // Stack dynamic array pointer
+	Value *stackTop; // Stack's head pointer
 } VM;
 
 // Start up virtual machine
@@ -21,6 +24,6 @@ InterpreterResult interprete(const char *source);
 // Push onto VM stack
 void push();
 // Pop from VM stack
-void pop();
+Value pop();
 
 #endif // !virtual_machine_h
